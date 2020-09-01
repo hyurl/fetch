@@ -64,9 +64,9 @@ you see in your browser and what you're gonna get in the program.
 
 #### Other Features
 
-This package also comes with many other features, like auto-parse cookies and
-organization, header field capitalization, reuse connection, auto-parse response,
-etc. all is meant to perform more like a browser agent.
+This package also comes with many other features, like set-cookie style cookies,
+auto-capitalize header fields, reuse connection, auto-parse response, etc. all
+is meant to perform more like a browser agent and more handy for use.
 
 ## Example
 

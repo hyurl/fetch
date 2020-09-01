@@ -60,10 +60,12 @@ export class Fetcher {
     }), 4);
     private proxyAgents: { [url: string]: any; } = {};
 
-    constructor(private config: FetcherConfig = {
-        magicVars: false,
-        timeout: 30000
-    }) { }
+    constructor(private config: FetcherConfig = {}) {
+        this.config = Object.assign({
+            magicVars: false,
+            timeout: 30000
+        }, omitVoid(config));
+    }
 
     /**
      * Dispatches the request, this method doesn't fetch the resource itself,
@@ -270,9 +272,7 @@ export class Fetcher {
             }
         }
 
-        request.headers = capitalizeHeaders(headers);
-
-        return this.makeRequest(request);
+        return this.makeRequest({ ...request, headers });
     }
 
     private async makeRequest(request: Request) {
@@ -281,7 +281,9 @@ export class Fetcher {
             httpAgent: this.httpAgent,
             httpsAgent: this.httpsAgent,
             maxRedirects: 5,
+            headers: capitalizeHeaders(request.headers),
             ...omit(request, [
+                "headers",
                 "cookies",
                 "adapter",
                 "sourceOnly",
@@ -294,7 +296,7 @@ export class Fetcher {
                 "proxy"
             ]) as any
         };
-        let reqLang = <string>request.headers["Accept-Language"];
+        let reqLang = <string>request.headers["accept-language"];
         let proxyUrl: string;
 
         if (request.proxy) {
@@ -408,7 +410,7 @@ export class Fetcher {
                 }
             }
         } else { // auto-detect
-            if (["text", "application"].includes(resInfo.prefix)) {
+            if (["text", "application", "*"].includes(resInfo.prefix)) {
                 try {
                     if (res.data.byteLength === 0) {
                         type = "text";
