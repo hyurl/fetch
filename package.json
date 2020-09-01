@@ -1,0 +1,48 @@
+{
+  "name": "smart-fetch",
+  "version": "1.0.0",
+  "description": "A web fetch tool that imitates browser behavior and suitable for crawlers.",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyurl/smart-fetch.git"
+  },
+  "keywords": [
+    "fetch",
+    "crawler"
+  ],
+  "author": "Ayon Lee <i@hyurl.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hyurl/smart-fetch/issues"
+  },
+  "homepage": "https://github.com/hyurl/smart-fetch#readme",
+  "devDependencies": {
+    "@types/lodash": "^4.14.161",
+    "@types/node": "^14.6.2"
+  },
+  "dependencies": {
+    "@hyurl/utils": "^0.2.3",
+    "@types/backoff": "^2.5.1",
+    "@types/mime-types": "^2.1.0",
+    "@types/qs": "^6.9.4",
+    "axios": "^0.20.0",
+    "backoff": "^2.5.0",
+    "better-lookup": "^1.1.0",
+    "https-proxy-agent": "^5.0.0",
+    "iconv-lite": "^0.6.2",
+    "jschardet": "^2.2.1",
+    "jschardet-eastasia": "^1.4.1",
+    "lodash": "^4.17.20",
+    "mime-types": "^2.1.27",
+    "moment": "^2.27.0",
+    "os-locale": "^5.0.0",
+    "qs": "^6.9.4",
+    "sfn-cookie": "^1.0.7",
+    "xml2js": "^0.4.23"
+  }
+}
