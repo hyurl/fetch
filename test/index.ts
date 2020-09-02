@@ -97,7 +97,6 @@ describe("new Fetcher().fetch", () => {
         try {
             await fetcher.fetch(`http://${randStr(64)}.com`);
         } catch (err) {
-            assert.strictEqual(err["errno"], void 0);
             assert.strictEqual(err["syscall"], "queryA");
         }
     });
