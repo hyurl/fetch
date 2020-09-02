@@ -1,5 +1,5 @@
 import fetch, { Fetcher, Request, Response } from "..";
-import { App } from "webium";
+import * as express from "express";
 import * as assert from "assert";
 import * as http from "http";
 import * as https from "https";
@@ -11,46 +11,48 @@ import randStr from "@hyurl/utils/randStr";
 import timestamp from "@hyurl/utils/timestamp";
 import { URL } from "url";
 import Axios from "axios";
+import * as bodyParser from "body-parser";
+import * as cookieParser from "cookie-parser";
+import AsyncStreamIterator from "async-stream-iterator";
 
-const app = new App();
-const proxyServer = proxy(http.createServer());
-
+const app = express();
+const proxyServer = proxy(http.createServer(), {});
 const osLang = locale();
 
-app.get("/hello", () => {
-    return "Hello, World!";
-}).get("/test-magic-vars", (req) => {
-    return { ts: Number(req.query["ts"]) };
-}).get("/test-json", () => {
-    return { foo: "Hello", bar: "World" };
+app.use(bodyParser.text());
+app.use(cookieParser());
+
+app.get("/hello", (req, res) => {
+    res.send("Hello, World!");
+}).get("/test-magic-vars", (req, res) => {
+    res.send({ ts: Number(req.query["ts"]) });
+}).get("/test-json", (req, res) => {
+    res.send({ foo: "Hello", bar: "World" });
 }).get("/test-xml", (req, res) => {
-    res.type = "application/xml";
-    return { foo: "Hello", bar: "World" };
+    res.setHeader("content-type", "application/xml");
+    res.send("<xml><foo>Hello</foo><bar>World</bar></xml>");
 }).get("/test-binary", (req, res) => {
-    return Buffer.from("Hello, World!");
+    res.send(Buffer.from("Hello, World!"));
 }).get("/test-locale", (req, res) => {
-    return { lang: req.lang };
-}).get("/test-cookies", (req) => {
-    return { cookies: req.cookies };
-}).get("/reuse-connection", (req) => {
-    return { keepAlive: req.headers["connection"] === "keep-alive" };
+    res.send({ lang: req.headers["accept-language"].split(",")[0] });
+}).get("/test-cookies", (req, res) => {
+    res.send({ cookies: req.cookies });
+}).get("/reuse-connection", (req, res) => {
+    res.send({ keepAlive: req.headers["connection"] === "keep-alive" });
 }).get("/test-retry", (req, res) => {
     if (Number(req.query["currentTS"]) - Number(req.query["originTS"]) >= 1) {
-        return { ts: Number(req.query["currentTS"]) };
+        res.send({ ts: Number(req.query["currentTS"]) });
     } else {
-        res.status = 425;
+        res.sendStatus(425);
         res.end();
     }
+}).post("/test-stream", (req, res) => {
+    res.send(req.body);
 });
 
 before(async () => {
     await new Promise(resolve => app.listen(3000, resolve));
     await new Promise(resolve => proxyServer.listen(3128, resolve));
-});
-
-after(done => {
-    app.close();
-    done();
 });
 
 describe("new Fetcher()", () => {
@@ -224,6 +226,38 @@ describe("new Fetcher().fetch()", () => {
             } catch (err) {
                 assert(String(err) === `Error: connect ECONNREFUSED ${proxy2}`);
             }
+        });
+    });
+
+    describe("Stream Support", () => {
+        it("should send the request with a stream", async () => {
+            let res = await fetcher.fetch("http://localhost:3000/test-stream", {
+                method: "POST",
+                data: fs.createReadStream(__dirname + "/gb2312.txt"),
+                headers: { "content-type": "text/plain; charset=gb2312" }
+            });
+
+            assert.strict(res.data, "你好，世界！");
+        });
+
+        it("should fetch the response as a stream", async () => {
+            let res = await fetcher.fetch<NodeJS.ReadableStream>(
+                "http://localhost:3000/test-stream",
+                {
+                    method: "POST",
+                    data: fs.createReadStream(__dirname + "/gb2312.txt"),
+                    headers: { "content-type": "text/plain; charset=gb2312" },
+                    responseType: "stream"
+                }
+            );
+            let data = Buffer.from([]);
+
+            res.type;
+            for await (let chunk of new AsyncStreamIterator(res.data)) {
+                data = Buffer.concat([data, chunk]);
+            }
+
+            assert.strict(String(data), "你好，世界！");
         });
     });
 

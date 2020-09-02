@@ -1,7 +1,7 @@
 import { Method } from "axios";
 
 export type Headers = Record<string, string | string[]>;
-export type MessageType = string | object | Buffer;
+export type MessageType = string | object | Buffer | NodeJS.ReadableStream;
 
 export interface HttpMessage {
     url: string;
@@ -37,7 +37,7 @@ export interface Request extends HttpMessage {
      * decoding the response to the relevant type and report an type error when
      * failed.
      */
-    responseType?: "text" | "json" | "buffer";
+    responseType?: "stream" | "buffer" | "text" | "json";
     /**
      * By default, the program will automatically detect the response charset
      * and decode the content, however, sometimes this strategy may fail due to
@@ -73,7 +73,13 @@ export interface Response<T extends MessageType = MessageType> extends Required<
      * If `type` is `json`, the `data` will be automatically parse to JavaScript
      * object via `JSON.parse`. 
      */
-    type: T extends Buffer ? "buffer" : T extends string ? "text" : "json";
+    type: T extends NodeJS.ReadableStream
+    ? "stream"
+    : T extends Buffer
+    ? "buffer"
+    : T extends string
+    ? "text"
+    : "json";
     data: T;
 }
 

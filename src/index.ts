@@ -3,6 +3,7 @@ import Axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import omitVoid from "@hyurl/utils/omitVoid";
 import get = require("lodash/get");
 import pick = require("lodash/pick");
+import omit = require("lodash/omit");
 import trimStart = require("lodash/trimStart");
 import * as qs from "qs";
 import * as http from "http";
@@ -63,7 +64,7 @@ export class Fetcher {
         this.config = Object.assign({
             magicVars: false,
             timeout: 30000
-        }, omitVoid(config));
+        }, omitVoid(config || {}, true, true));
     }
 
     /**
@@ -87,8 +88,9 @@ export class Fetcher {
             data: null,
             timeout: 30000,
             retries: 0
-        }, omitVoid(request), {
-            headers: lowerHeaders(request.headers || {})
+        }, omitVoid(omit(request, ["data"]), true, true), {
+            headers: lowerHeaders(request.headers || {}),
+            data: request.data
         });
 
         if (request.data) {
@@ -118,7 +120,9 @@ export class Fetcher {
                         });
                     }
                 }
-            } else if (["GET", "HEAD", "get", "head"].includes(request.method)) {
+            } else if (typeof request.data === "string"
+                && ["GET", "HEAD", "get", "head"].includes(request.method)
+            ) {
                 patchQueryString(trimStart(String(request.data), "?&"));
             }
         }
@@ -214,22 +218,14 @@ export class Fetcher {
     ): Promise<Response<T>>;
     fetch<T extends MessageType>(request: Request): Promise<Response<T>>;
     async fetch(target: string | Request, options?: Request): Promise<Response> {
+        let request: Request;
+
         if (typeof target === "string") {
-            options = Object.assign(options || {}, { url: target });
+            request = Object.assign({ url: target }, options || {});
         } else {
-            options = target;
+            request = { ...target }; // clone, prevent modification
         }
 
-        options.timeout || (options.timeout = this.config.timeout);
-
-        return Fetcher.dispatch(
-            options,
-            this.request.bind(this),
-            this.config.magicVars
-        );
-    }
-
-    private async request(request: Request) {
         let { url, headers, cookies } = request;
         let { protocol, pathname } = new URL(url);
 
@@ -242,7 +238,7 @@ export class Fetcher {
             "connection": "keep-alive",
             "pragma": "no-cache",
             "user-agent": UserAgent
-        }, omitVoid(headers || {}, true, true, true));
+        }, omitVoid(headers || {}, true, true));
 
         if (protocol === "http:") {
             headers["upgrade-insecure-requests"] = "1";
@@ -276,12 +272,21 @@ export class Fetcher {
                 + (headers["accept-language"]);
         }
 
-        return this.makeRequest({ ...request, headers });
+        request.headers = headers;
+        request.timeout || (request.timeout = this.config.timeout);
+
+        return Fetcher.dispatch(
+            request,
+            this.makeRequest.bind(this),
+            this.config.magicVars
+        );
     }
 
     private async makeRequest(request: Request) {
         let options: AxiosRequestConfig = {
-            responseType: "arraybuffer",
+            responseType: request.responseType === "stream"
+                ? "stream"
+                : "arraybuffer",
             httpAgent: this.httpAgent,
             httpsAgent: this.httpsAgent,
             maxRedirects: request.maxRedirects || 5,
@@ -329,7 +334,7 @@ export class Fetcher {
             options.httpAgent = options.httpsAgent = this.proxyAgents[proxyUrl];
         }
 
-        let res: AxiosResponse<Buffer>;
+        let res: AxiosResponse<any>;
 
         try {
             res = await Axios.request(options);
@@ -343,36 +348,64 @@ export class Fetcher {
 
         let resInfo = resolveContentType(res.headers, request.headers);
         let url: string = get(res.request, "res.responseUrl", request.url);
+
+        // Remove proxy prefix from the url.
+        if (url && proxyUrl && url.startsWith(proxyUrl + "/")) {
+            url = url.slice(proxyUrl.length + 1);
+        }
+
+        let { protocol, host, pathname, search } = new URL(url);
+
+        // Ensure the url doesn't contain username and password.
+        url = protocol + "//" + host + pathname + search;
+
+        let response: Response = {
+            ok: res.status >= 200 && res.status < 300 || res.status === 304,
+            url,
+            status: res.status,
+            statusText: res.statusText,
+            headers: res.headers || {},
+            cookies: res.headers["set-cookie"] || [],
+            type: void 0,
+            data: null
+        };
+
+        // If set fetching the stream, return the response immediately with the
+        // stream without parsing anything.
+        if (request.responseType === "stream") {
+            response.type = "stream";
+            response.data = res.data as NodeJS.ReadableStream;
+
+            return response;
+        }
+
+        let resData: Buffer = res.data;
         let type = request.responseType || resInfo.type;
         let charset = request.responseCharset || resInfo.charset || (() => {
             if (reqLang.includes("zh") ||
                 reqLang.includes("jp") ||
                 reqLang.includes("ko")
             ) {
-                return detectEA(res.data).encoding as string;
+                return detectEA(resData).encoding as string;
             } else {
-                return detect(res.data).encoding;
+                return detect(resData).encoding;
             }
         })();
         let data: any;
-
-        if (url && proxyUrl && url.startsWith(proxyUrl + "/")) {
-            url = url.slice(proxyUrl.length + 1);
-        }
 
         if (type === "buffer" ||
             (type === "octet-stream" && !request.responseType)
         ) { // do not decode
             type = "buffer";
-            data = res.data;
+            data = resData;
         } else if (request.responseType) { // decode to 'text' or 'json'
             try {
-                if (res.data.byteLength === 0) {
+                if (resData.byteLength === 0) {
                     type = "text";
                     data = "";
                 } else if (charset) {
                     type = "text";
-                    data = iconv.decode(res.data, charset); // buffer -> string
+                    data = iconv.decode(resData, charset); // buffer -> string
                 } else {
                     throw new TypeError("Cannot decode the data as "
                         + request.responseType
@@ -409,11 +442,11 @@ export class Fetcher {
         } else { // auto-detect
             if (["text", "application", "*"].includes(resInfo.prefix)) {
                 try {
-                    if (res.data.byteLength === 0) {
+                    if (resData.byteLength === 0) {
                         type = "text";
                         data = "";
                     } else if (charset) {
-                        data = iconv.decode(res.data, charset);
+                        data = iconv.decode(resData, charset);
 
                         if (type === "json") {
                             data = JSON.parse(data);
@@ -426,28 +459,20 @@ export class Fetcher {
                         }
                     } else {
                         type = "buffer";
-                        data = res.data;
+                        data = resData;
                     }
                 } catch (e) {
                     type = "buffer";
-                    data = res.data;
+                    data = resData;
                 }
             } else {
                 type = "buffer";
-                data = res.data;
+                data = resData;
             }
         }
 
-        let response: Response = {
-            ok: res.status >= 200 && res.status < 300 || res.status === 304,
-            url,
-            status: res.status,
-            statusText: res.statusText,
-            headers: res.headers || {},
-            cookies: res.headers["set-cookie"] || [],
-            type: <Response["type"]>type,
-            data
-        };
+        response.type = <Response["type"]>type;
+        response.data = data;
 
         return response;
     }
