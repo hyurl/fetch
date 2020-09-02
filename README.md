@@ -1,6 +1,6 @@
-# Smart Fetch
+# Fetch
 
-**A web fetch tool that imitates browser behavior and suitable for crawlers.**
+**A Node.js fetch tool that imitates browser behavior and ready for crawlers.**
 
 This package is based on [axios](https://github.com/axios/axios) and is
 configured ready-in-use, which solves some frequent problems that Node.js or
@@ -42,7 +42,7 @@ a proper charset header in response. However, in Node.js, it causes our own
 effort to support that.
 
 Luckily, by integrated with [jschardet](https://github.com/aadsm/jschardet),
-**smart-fetch** is able to perform such functionality in our program, and is as
+**fetch** is able to perform such functionality in our program, and is as
 much good as the browser does.
 
 #### Auto-retry Requests
@@ -53,7 +53,7 @@ is very useful for a fetcher program, especially when you're designing a crawler
 system, you'd hope that you can retry as many time as you could to get the
 response.
 
-So **smart-fetch** allows you doing that, no any magic, just a simple option,
+So **fetch** allows you doing that, no any magic, just a simple option,
 and the program will automatically retry the request in a way of exponential
 backoff.
 
@@ -72,7 +72,7 @@ is meant to perform more like a browser agent and more handy for use.
 ## Example
 
 ```ts
-import fetch from "smart-fetch";
+import fetch from "@hyurl/fetch";
 
 (async () => {
     let {
