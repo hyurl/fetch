@@ -65,9 +65,9 @@ export function constructProxy(proxy: string | AxiosProxyConfig) {
         if (urlObj.username) {
             proxy.auth = pick(urlObj, ["username", "password"]);
         }
-    } else {
-        return proxy;
     }
+
+    return proxy;
 }
 
 export function parseXML(xml: string) {

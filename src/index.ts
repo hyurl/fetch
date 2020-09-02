@@ -2,7 +2,6 @@ import Cookie from "sfn-cookie";
 import Axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import omitVoid from "@hyurl/utils/omitVoid";
 import get = require("lodash/get");
-import omit = require("lodash/omit");
 import pick = require("lodash/pick");
 import trimStart = require("lodash/trimStart");
 import * as qs from "qs";
@@ -39,7 +38,7 @@ const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) "
     + "Chrome/80.0.3987.116 "
     + "Safari/537.36";
 
-const RetryableStatuses = [403, 408, 409, 502, 503, 504];
+const RetryableStatuses = [408, 409, 425, 500, 502, 503, 504];
 const HangUpPattern = /net::ERR_EMPTY_RESPONSE|socket hang up/;
 const UnretryablePattern = new RegExp([
     "ERR_CONNECTION_REFUSED", "ECONNREFUSED",
@@ -78,7 +77,8 @@ export class Fetcher {
      */
     static dispatch(
         request: Request,
-        handle: (request: Request) => Promise<Response>
+        handle: (request: Request) => Promise<Response>,
+        magicVars = false
     ) {
         request = Object.assign(<Request>{
             method: "GET",
@@ -87,12 +87,9 @@ export class Fetcher {
             data: null,
             timeout: 30000,
             retries: 0
-        }, omitVoid(request));
-
-        request.headers = lowerHeaders(request.headers);
-
-        // clone the headers to prevent modification
-        let _headers = { ...request.headers };
+        }, omitVoid(request), {
+            headers: lowerHeaders(request.headers || {})
+        });
 
         if (request.data) {
             let patchQueryString = (query: string) => {
@@ -127,12 +124,25 @@ export class Fetcher {
         }
 
         return new Promise<Response>((resolve, reject) => {
+            let url = request.url;
+            let referer = request.headers?.referer as string;
             let doRequest = async (retries = -1) => {
                 retries += 1;
+
                 let error: Error;
                 let response: Response;
                 let shouldRetry = false;
                 let isGone = false;
+
+                // resolve magic variables
+                if (magicVars) {
+                    request.url = resolveMagicVars(url);
+
+                    // apply magic variables on referer field
+                    if (referer) {
+                        request.headers.referer = resolveMagicVars(referer);
+                    }
+                }
 
                 try {
                     response = await handle(request);
@@ -177,7 +187,6 @@ export class Fetcher {
                             }
                         }
 
-                        request.headers = _headers;
                         error["request"] = request;
                         error["response"] = response || null;
 
@@ -213,7 +222,11 @@ export class Fetcher {
 
         options.timeout || (options.timeout = this.config.timeout);
 
-        return Fetcher.dispatch(options, this.request.bind(this));
+        return Fetcher.dispatch(
+            options,
+            this.request.bind(this),
+            this.config.magicVars
+        );
     }
 
     private async request(request: Request) {
@@ -263,15 +276,6 @@ export class Fetcher {
                 + (headers["accept-language"]);
         }
 
-        // resolve magic variables
-        if (this.config.magicVars) {
-            request.url = resolveMagicVars(request.url);
-
-            if (headers.referer) {
-                headers.referer = resolveMagicVars(<string>headers.referer);
-            }
-        }
-
         return this.makeRequest({ ...request, headers });
     }
 
@@ -280,21 +284,14 @@ export class Fetcher {
             responseType: "arraybuffer",
             httpAgent: this.httpAgent,
             httpsAgent: this.httpsAgent,
-            maxRedirects: 5,
+            maxRedirects: request.maxRedirects || 5,
             headers: capitalizeHeaders(request.headers),
-            ...omit(request, [
-                "headers",
-                "cookies",
-                "adapter",
-                "sourceOnly",
-                "blockMedia",
-                "responseType",
-                "responseCharset",
-                "proxy",
-                "retries",
-                "eval",
-                "proxy"
-            ]) as any
+            ...pick(request, [
+                "method",
+                "url",
+                "data",
+                "timeout"
+            ])
         };
         let reqLang = <string>request.headers["accept-language"];
         let proxyUrl: string;

@@ -105,7 +105,8 @@ class Fetcher {
      */
     static dispatch(
         request: Request,
-        handle: (request: Request) => Promise<Response>
+        handle: (request: Request) => Promise<Response>,
+        magicVars?: boolean
     ): Promise<Response>;
 
     /**
