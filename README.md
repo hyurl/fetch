@@ -131,5 +131,5 @@ For relevant types and detailed usage explanations, please check
 [the type definitions](./src/types.ts).
 
 NOTE: the default function `fetch`, as used in the above example, is just a
-short-hand of `new Fetcher().fetch()`, which uses a default fetcher instance
+short-hand of `new Fetcher().fetch()`, which uses a built-in fetcher instance
 that turns [`magicVars`](./src/types.ts#L81) on.

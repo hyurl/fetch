@@ -1,4 +1,4 @@
-import { Fetcher, Request, Response } from "..";
+import fetch, { Fetcher, Request, Response } from "..";
 import { App } from "webium";
 import * as assert from "assert";
 import * as http from "http";
@@ -53,7 +53,7 @@ after(done => {
     done();
 });
 
-describe("new Fetcher", () => {
+describe("new Fetcher()", () => {
     it("should create a Fetcher instance", async () => {
         let fetcher = new Fetcher();
 
@@ -74,7 +74,7 @@ describe("new Fetcher", () => {
     });
 });
 
-describe("new Fetcher().fetch", () => {
+describe("new Fetcher().fetch()", () => {
     let fetcher = new Fetcher({ magicVars: true });
 
     it("should fetch response", async () => {
@@ -252,7 +252,7 @@ describe("new Fetcher().fetch", () => {
     });
 });
 
-describe("Fetcher.dispatch", () => {
+describe("Fetcher.dispatch()", () => {
     it("should dispatch a request via a custom handle function", async () => {
         let handle = async (request: Request) => {
             let res = await Axios.request(<any>request);
@@ -283,5 +283,14 @@ describe("Fetcher.dispatch", () => {
             headers: response.headers,
             cookies: []
         });
+    });
+});
+
+describe("fetch()", () => {
+    it("should fetch response", async () => {
+        let res = await fetch("http://localhost:3000/hello");
+
+        assert.strictEqual(res.type, "text");
+        assert.strictEqual(res.data, "Hello, World!");
     });
 });

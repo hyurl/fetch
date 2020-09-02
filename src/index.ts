@@ -459,7 +459,7 @@ export class Fetcher {
     }
 }
 
-const defaultFetcher = new Fetcher({ magicVars: true });
-const fetch: Fetcher["fetch"] = defaultFetcher.fetch.bind(defaultFetcher);
+const fetcher = new Fetcher({ magicVars: true });
+const fetch: Fetcher["fetch"] = fetcher.fetch.bind(fetcher);
 
 export default fetch;
