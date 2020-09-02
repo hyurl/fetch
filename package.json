@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "types": "src/index.ts",
   "scripts": {
+    "pretest": "tsc",
     "test": "mocha --require ts-node/register --exit test/index.ts"
   },
   "repository": {
