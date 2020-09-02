@@ -10,7 +10,8 @@ has internally.
 
 #### Asynchronous DNS Lookup
 
-Node.js internally uses [dns.lookup](https://nodejs.org/dist/latest-v14.x/docs/api/dns.html#dns_dns_lookup)
+Node.js internally uses
+[dns.lookup](https://nodejs.org/dist/latest-v14.x/docs/api/dns.html#dns_dns_lookup)
 to resolve IP addresses for hostnames, which is synchronous under the hood
 (calls `getaddrinfo`), that means it will block the Node.js thread pool, giving
 the program a huge disadvantage on performance when requests are too busy.
@@ -74,7 +75,13 @@ is meant to perform more like a browser agent and more handy for use.
 import fetch from "smart-fetch";
 
 (async () => {
-    let { ok, url, status, statusText, data } = await fetch("https://example.com/some/url");
+    let {
+        ok,
+        url,
+        status,
+        statusText,
+        data
+    } = await fetch("https://example.com/some/url");
 
     if (ok) {
         console.log(data);
