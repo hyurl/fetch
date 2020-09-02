@@ -2,9 +2,9 @@
 
 **A web fetch tool that imitates browser behavior and suitable for crawlers.**
 
-This package is based on [axios](https://github.com/axios/axios) and configured
-in ready-in-use state, which solves some frequent problems that Node.js or axios
-has internally.
+This package is based on [axios](https://github.com/axios/axios) and is
+configured ready-in-use, which solves some frequent problems that Node.js or
+axios has internally.
 
 ### Main Features
 
