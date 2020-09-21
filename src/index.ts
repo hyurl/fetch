@@ -269,7 +269,7 @@ export class Fetcher {
         }
 
         if (!SysLangRE.test(String(headers["accept-language"]))) {
-            headers["accept-language"] = `${SysLang};q=1,`
+            headers["accept-language"] = `${SysLang},`
                 + String(headers["accept-language"]);
         }
 
