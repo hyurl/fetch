@@ -34,6 +34,7 @@ app.get("/hello", (req, res) => {
 }).get("/test-binary", (req, res) => {
     res.send(Buffer.from("Hello, World!"));
 }).get("/test-locale", (req, res) => {
+    console.log(req.headers["accept-language"]);
     res.send({ lang: req.headers["accept-language"].split(",")[0] });
 }).get("/test-cookies", (req, res) => {
     res.send({ cookies: req.cookies });
