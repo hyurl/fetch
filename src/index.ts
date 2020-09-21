@@ -33,7 +33,8 @@ export * as utils from "./utils";
 
 const createProxyAgent = require("https-proxy-agent");
 
-const sysLang = locale();
+const SysLang = locale();
+const SysLangRE = new RegExp(`\\b${SysLang}\\b`);
 const UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) "
     + "AppleWebKit/537.36 (KHTML, like Gecko) "
     + "Chrome/80.0.3987.116 "
@@ -267,9 +268,9 @@ export class Fetcher {
             }
         }
 
-        if (!headers["accept-language"].includes(sysLang)) {
-            headers["accept-language"] = `${sysLang};q=1,`
-                + (headers["accept-language"]);
+        if (!SysLangRE.test(String(headers["accept-language"]))) {
+            headers["accept-language"] = `${SysLang};q=1,`
+                + String(headers["accept-language"]);
         }
 
         request.headers = headers;
