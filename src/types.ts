@@ -61,7 +61,7 @@ export interface Request extends HttpMessage {
 }
 
 export interface Response<T extends MessageType = MessageType> extends Required<HttpMessage> {
-    /** A request is seemed OK when the status code is 200-299 or 304. */
+    /** A request is seemed OK if the status code is `200`-`299`. */
     ok: boolean;
     /** HTTP status code. */
     status: number;

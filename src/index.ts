@@ -360,7 +360,7 @@ export class Fetcher {
         url = protocol + "//" + host + pathname + search;
 
         let response: Response = {
-            ok: res.status >= 200 && res.status < 300 || res.status === 304,
+            ok: res.status >= 200 && res.status <= 299,
             url,
             status: res.status,
             statusText: res.statusText,
